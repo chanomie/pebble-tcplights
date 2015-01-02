@@ -10,7 +10,7 @@ var ajax = require('ajax');
 var splashCard = new UI.Card({
   title: 'TCP Lighting',
   icon: 'images/menu_icon.png',
-  body: 'Looking for hub...'
+  body: 'Looking for hub, should take less than 5s...'
 });
 
 splashCard.show();
@@ -57,7 +57,7 @@ function tcpSceneMenu() {
           console.log('Selected item #' + e.itemIndex + ' of section #' + e.sectionIndex);
           console.log('The item is titled "' + e.item.title + '"');
           console.log('The item is subtitled "' + e.item.subtitle + '"');
-          tcpChangeScene(e.item.subtitle);
+          tcpChangeScene(e.item.subtitle, e.item.title);
         });
       
         sceneMenu.show();
@@ -72,10 +72,17 @@ function tcpSceneMenu() {
   );  
 }
 
-function tcpChangeScene(sceneId) {
+function tcpChangeScene(sceneId, sceneName) {
   var sceneCommand =
       "<gip><version>1</version><token>1234567890</token><sid>" + sceneId + "</sid></gip>";
   
+  var sceneUpdateCard = new UI.Card({
+    title: 'TCP Lighting',
+    icon: 'images/menu_icon.png',
+    body: 'Activating Scene: ' + sceneName
+  });
+  
+  sceneUpdateCard.show();
   ajax(
     {
       url: 'http://lighting.local/gwr/gop.php',
@@ -87,9 +94,10 @@ function tcpChangeScene(sceneId) {
       }
     },
     function(data) {
-      
+      sceneUpdateCard.hide();
     },
     function(error) {
+      sceneUpdateCard.hide();
       displayError(3, "Failed to set scene: " + error);
     }
   );
