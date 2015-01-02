@@ -1,12 +1,41 @@
 /**
- * Welcome to Pebble.js!
+ * TCP Lighting is a Pebble Watch App designed to control the Connected by TCP
+ * WiFi home lighting system.
  *
- * This is where you write your app.
+ * The project is hosted on Github: 
+ *   https://github.com/chanomie/pebble-tcplights
+ *
+ * Copyright 2014-2015 Jordan Reed
  */
 
+/** Import the main Pebble UI Class. */
 var UI = require('ui');
+
+/** Import the Pebble Ajax library. */
 var ajax = require('ajax');
 
+/**
+ * This is the location of the lighting service on the local network. The
+ * fefault location of this is lighting.local.
+ *
+ * @type {string}
+ */
+var lightingService = 'http://lighting.local/gwr/gop.php';
+
+/**
+ * This is the session token for running commands.  Since the token code
+ * is currently always 123467890 it is currently a constant and the login
+ * call is skipped.
+ * @const
+ * @type {string}
+ */
+var sessionToken = "1234567890";
+
+/**
+ * The splash card that is shown as the application is loading.
+ *
+ * @type {UI.Card}
+ */
 var splashCard = new UI.Card({
   title: 'TCP Lighting',
   icon: 'images/menu_icon.png',
@@ -14,24 +43,48 @@ var splashCard = new UI.Card({
 });
 
 splashCard.show();
-tcpSceneMenu();
+tcpGetScenes();
 
-function tcpSceneMenu() {
+/**
+ * Runs the scene menu.
+ * 1. Makes the AJAX call to SceneGetList
+ * 2. On Success passes the result in displaySceneMenu
+ */
+function tcpGetScenes() {
+  var sceneGetListCommand =
+      "<gip><version>1</version><token>" + sessionToken + "</token><islocal>1</islocal></gip>";
+
   ajax(
     {
-      url: 'http://lighting.local/gwr/gop.php',
+      url: lightingService,
       method: 'post',
       data: {
-        cmd: 'GWRBatch',
+        cmd: 'SceneGetList',
         fmt: 'xml',
-        data: '<gwrcmds><gwrcmd><gcmd>SceneGetList</gcmd><gdata><gip><version>1</version><token>1234567890</token><islocal>1</islocal></gip></gdata></gwrcmd></gwrcmds>'
+        data: sceneGetListCommand
       }
     },
-    function(data) {
-      var sceneXmlArray = data.match(/<scene>.*?<\/scene>/g),
+    displaySceneMenu,
+    function(error) {
+      displayError(2, "Failed to get scene list.  The most common problem "
+                   + "is that http://lighting.local isn't available. "
+                   + "Make sure your phone is on your home WiFi and check "
+                   + "if it can load lighting.local in the browser.\n" + error);
+    }
+  );  
+}
+
+/**
+ * Takes the list of scenes and displays a menu with all the scenes.  Each
+ * menu item triggers a call to tcpChangeScene.
+ *
+ * @param {string} sceneGetListResult the xml string returned from the SceneGetList command
+ */
+function displaySceneMenu(sceneGetListResult) {
+      var sceneXmlArray = sceneGetListResult.match(/<scene>.*?<\/scene>/g),
           sceneItemsArray =[];
     
-      console.log("Response is: " + data);
+      console.log("Response is: " + sceneGetListResult);
       if(sceneXmlArray) {
         sceneXmlArray.forEach(function(sceneXml) {
           var sceneId = sceneXml.replace(/.*<sid>([0-9]*)<\/sid>.*/,"$1"),
@@ -65,16 +118,17 @@ function tcpSceneMenu() {
       } else {
         displayError(1, "No available scenes.");
       }
-    },
-    function(error) {
-      displayError(2, "Failed to get scene list: " + error);
-    }
-  );  
 }
 
+/**
+ * Makes an AJAX call to SceneRun to run a new scene.
+ *
+ * @param {number} sceneId The scene id to run
+ * @param {string} sceneName the name of the scene being run.
+ */
 function tcpChangeScene(sceneId, sceneName) {
   var sceneCommand =
-      "<gip><version>1</version><token>1234567890</token><sid>" + sceneId + "</sid></gip>";
+      "<gip><version>1</version><token>" + sessionToken + "</token><sid>" + sceneId + "</sid></gip>";
   
   var sceneUpdateCard = new UI.Card({
     title: 'TCP Lighting',
@@ -85,7 +139,7 @@ function tcpChangeScene(sceneId, sceneName) {
   sceneUpdateCard.show();
   ajax(
     {
-      url: 'http://lighting.local/gwr/gop.php',
+      url: lightingService,
       method: 'post',
       data: {
         cmd: 'SceneRun',
@@ -103,6 +157,12 @@ function tcpChangeScene(sceneId, sceneName) {
   );
 }
 
+/**
+ * Display an error on the screen.
+ * 
+ * @param {number} errorCode a unique error code
+ * @param {string} the string to display
+ */
 function displayError(errorCode, error) {
   console.log("[" + errorCode + "] " + error);
   var errorCard = new UI.Card({
@@ -113,4 +173,3 @@ function displayError(errorCode, error) {
   });  
   errorCard.show();
 }
-
