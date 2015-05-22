@@ -1,5 +1,13 @@
 # pebble-tcplights
 
+*Important* Sadly this project has been retired. In early 2015, TCP lights rolled out
+a security update.  Part of these update was to require that the REST API calls to
+the TCP Hub needed to go through https, but the certificate on the hub is self-signed.
+iOS is unwilling to make the call to the service that has a certificate it cannot verify.
+Additionally, TCP has announced that they are going to stop development of their hub
+and software, and just make the bulbs while partnering with WeMo for the software.
+There is already a fantastic Pebble App to control the WeMo system.  Go use it and enjoy.
+
 Pebble App to control the TCP Connected lights.
 
 Requires that your companion phone be on the same WiFi network as your TCP Hub.
